@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Client Dashboard | Subscription Status</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #eef2f7;  /* soft dashboard background */
+            font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 24px;
+        }
+
+        /* dashboard card container — modern, elevated, subtle */
+        .dashboard-card {
+            background: #ffffff;
+            border-radius: 28px;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.02);
+            max-width: 520px;
+            width: 100%;
+            transition: all 0.2s ease;
+            border: 1px solid rgba(203, 213, 225, 0.5);
+        }
+
+        /* inner spacing */
+        .card-content {
+            padding: 28px 32px 32px 32px;
+        }
+
+        /* header area with subscription badge */
+        .status-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+            gap: 12px;
+        }
+
+        .plan-badge {
+            background: #eef2ff;
+            color: #1e40af;
+            font-size: 0.75rem;
+            font-weight: 600;
+            padding: 5px 12px;
+            border-radius: 40px;
+            letter-spacing: 0.01em;
+            border: 1px solid #cbdff2;
+        }
+
+        .status-chip {
+            font-size: 0.75rem;
+            font-weight: 500;
+            background: #f1f5f9;
+            padding: 5px 12px;
+            border-radius: 40px;
+            color: #334155;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-chip::before {
+            content: "●";
+            font-size: 10px;
+            color: #10b981;
+        }
+
+        /* main title */
+        .subscription-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #0f172a;
+            margin-bottom: 8px;
+            letter-spacing: -0.01em;
+        }
+
+        .sub-line {
+            font-size: 0.85rem;
+            color: #475569;
+            border-left: 3px solid #94a3b8;
+            padding-left: 12px;
+            margin-bottom: 28px;
+            font-weight: 450;
+        }
+
+        /* timer panel — fresh modern look */
+        .timer-panel {
+            background: #f8fafc;
+            border-radius: 24px;
+            padding: 20px 16px;
+            text-align: center;
+            margin: 20px 0 24px 0;
+            border: 1px solid #e2e8f0;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .timer-label {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            color: #5b6e8c;
+            margin-bottom: 14px;
+        }
+
+        #countdown {
+            font-family: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+            font-size: 2.8rem;
+            font-weight: 700;
+            letter-spacing: 2px;
+            color: #0f3b6f;
+            background: #ffffff;
+            display: inline-block;
+            padding: 8px 24px;
+            border-radius: 60px;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,0.02), 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        /* warning & danger dynamic classes (override colors & subtle glow) */
+        #countdown.warning {
+            color: #c2410c;
+            background: #fff7ed;
+            box-shadow: 0 0 0 2px #ffedd5, inset 0 0 0 1px #fed7aa;
+        }
+
+        #countdown.danger {
+            color: #b91c1c;
+            background: #fef2f2;
+            box-shadow: 0 0 0 2px #fee2e2, inset 0 0 0 1px #fecaca;
+            animation: subtlePulse 1.2s infinite ease-in-out;
+        }
+
+        #countdown.expired {
+            color: #991b1b;
+            background: #fee2e2;
+            font-size: 2rem;
+            letter-spacing: normal;
+            padding: 8px 28px;
+            box-shadow: 0 0 0 2px #fecaca;
+        }
+
+        @keyframes subtlePulse {
+            0% { opacity: 1; background: #fef2f2; }
+            50% { background: #ffe4e4; box-shadow: 0 0 0 3px #fecaca; }
+            100% { opacity: 1; background: #fef2f2; }
+        }
+
+        /* expiry date + metadata row */
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            margin-top: 16px;
+            gap: 12px;
+            font-size: 0.85rem;
+        }
+
+        .expiry-badge {
+            background: #f1f5f9;
+            padding: 6px 14px;
+            border-radius: 40px;
+            color: #1e293b;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .expiry-badge strong {
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .note-message {
+            font-size: 0.75rem;
+            color: #5b6e8c;
+            background: #f9fafb;
+            padding: 4px 12px;
+            border-radius: 30px;
+        }
+
+        /* progress bar for visual warning */
+        .progress-section {
+            margin: 16px 0 8px 0;
+        }
+
+        .progress-bar-bg {
+            background: #e2e8f0;
+            border-radius: 40px;
+            height: 6px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            background: #3b82f6;
+            width: 100%;
+            height: 6px;
+            border-radius: 40px;
+            transition: width 0.3s ease, background 0.2s;
+        }
+
+        .progress-fill.warning-fill {
+            background: #f97316;
+        }
+
+        .progress-fill.danger-fill {
+            background: #ef4444;
+        }
+
+        .progress-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.7rem;
+            font-weight: 500;
+            color: #4b5563;
+        }
+
+        /* dashboard card hover subtle */
+        .dashboard-card:hover {
+            box-shadow: 0 24px 48px -16px rgba(0, 0, 0, 0.12);
+            transition: 0.2s;
+        }
+
+        /* responsive */
+        @media (max-width: 480px) {
+            .card-content {
+                padding: 20px 20px 26px 20px;
+            }
+            #countdown {
+                font-size: 1.9rem;
+                padding: 6px 18px;
+                letter-spacing: 1px;
+            }
+            .subscription-title {
+                font-size: 1.3rem;
+            }
+            .timer-panel {
+                padding: 16px 12px;
+            }
+        }
+
+        /* add a nice refresh icon style (just decorative) */
+        .footer-meta {
+            margin-top: 24px;
+            text-align: center;
+            font-size: 0.7rem;
+            color: #94a3b8;
+            border-top: 1px solid #eef2f6;
+            padding-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-card">
+    <div class="card-content">
+        <!-- header: plan + status chip -->
+        <div class="status-header">
+            <span class="plan-badge">⭐ PROFESSIONAL PLAN</span>
+            <span class="status-chip" id="liveStatusChip">Active</span>
+        </div>
+
+        <!-- main title -->
+        <div class="subscription-title">Subscription health</div>
+        <div class="sub-line">Your access remains fully active until expiration</div>
+
+        <!-- timer panel (dynamic) -->
+        <div class="timer-panel">
+            <div class="timer-label">⏳ REMAINING TIME</div>
+            <div id="countdown">— d — h — m — s</div>
+        </div>
+
+        <!-- Visual progress bar (remaining days / total lifespan) -->
+        <div class="progress-section" id="progressSection" style="display: block;">
+            <div class="progress-bar-bg">
+                <div class="progress-fill" id="progressFill" style="width: 100%;"></div>
+            </div>
+            <div class="progress-stats">
+                <span>📅 Validity</span>
+                <span id="remainingPercentLabel">100% remaining</span>
+            </div>
+        </div>
+
+        <!-- info row: expiry date + reminder note -->
+        <div class="info-row">
+            <div class="expiry-badge">
+                📆 <strong>Expires on:</strong> <span id="expiryDateDisplay">15 Jan 2028</span>
+            </div>
+            <div class="note-message" id="warningMessage">
+                ✔️ All features active
+            </div>
+        </div>
+        <div class="footer-meta">
+            <span>🔄 Auto‑renewal disabled</span>
+            <span>🔒 Secure dashboard</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function() {
+        // ---------- CONFIGURATION ----------
+        // Target expiry: 15 Jan 2028, end of day (23:59:59 local time)
+        // To avoid timezone confusion and ensure consistent client-side experience,
+        // we use local time constructor for given date: "2028-01-15T23:59:59" respects local timezone offset.
+        // Better: using explicit date parts to ensure midnight +23:59:59 in user's local time.
+        const expiryDate = new Date(2028, 0, 15, 23, 59, 59); // Jan = 0, 15 Jan 2028, 23:59:59 local time.
+        
+        // For display formatting (consistent with dashboard)
+        const formattedExpiry = "15 Jan 2028";   // explicit display
+        document.getElementById("expiryDateDisplay").innerText = formattedExpiry;
+
+        // total subscription lifespan (from start of subscription until expiry) - we need a start date for percentage.
+        // Typically subscription started on 15 Jan 2023? or 2024? To create a meaningful progress bar,
+        // we assume subscription started 3 years before expiry (or we can compute from a fixed start).
+        // For aesthetic & functional value: we will use a logical subscription start date: 15 Jan 2023 (5 years span before expiry? Actually from 2023 to 2028 = 5 years)
+        // But to show accurate "percentage used" it makes sense: subscription start date = 15 Jan 2023 (exactly 5 years before expiry, 1826 days approx)
+        // However client might not know exact start, but progress bar shows usage in a clean way.
+        // Alternatively we compute remaining fraction based on days between start and expiry.
+        // For better UX we define subscription start as 2023-01-15 (5 years plan). But if user wants realistic view, we can use that.
+        // To keep smooth, we ensure the progress bar reflects days used vs total days from start to expiry.
+        const subscriptionStart = new Date(2023, 0, 15, 0, 0, 0);  // 15 Jan 2023
+        const totalLifespanMs = expiryDate - subscriptionStart;   // total duration
+        // Safety check: if totalLifespanMs <= 0 (just in case) fallback
+        const isValidSpan = totalLifespanMs > 0;
+
+        // DOM elements
+        const countdownEl = document.getElementById("countdown");
+        const progressFillEl = document.getElementById("progressFill");
+        const remainingPercentLabel = document.getElementById("remainingPercentLabel");
+        const warningMessageSpan = document.getElementById("warningMessage");
+        const liveStatusChip = document.getElementById("liveStatusChip");
+
+        // Helper: update progress bar based on current time
+        function updateProgressBar(now, daysRemaining, totalDaysTotal) {
+            if (!isValidSpan) {
+                if (progressFillEl) progressFillEl.style.width = "0%";
+                if (remainingPercentLabel) remainingPercentLabel.innerText = "N/A";
+                return;
+            }
+
+            // compute elapsed duration from start to now
+            let elapsedMs = now - subscriptionStart;
+            if (elapsedMs < 0) elapsedMs = 0;
+            let remainingMs = expiryDate - now;
+            if (remainingMs < 0) remainingMs = 0;
+            
+            let percentRemaining = (remainingMs / totalLifespanMs) * 100;
+            percentRemaining = Math.min(100, Math.max(0, percentRemaining));
+            const percentUsed = 100 - percentRemaining;
+            
+            // update width and labels
+            if (progressFillEl) {
+                progressFillEl.style.width = `${percentRemaining}%`;
+                // style class based on warning level (danger/warning)
+                const daysLeft = daysRemaining;
+                if (daysLeft <= 3) {
+                    progressFillEl.classList.add("danger-fill");
+                    progressFillEl.classList.remove("warning-fill");
+                } else if (daysLeft <= 7) {
+                    progressFillEl.classList.add("warning-fill");
+                    progressFillEl.classList.remove("danger-fill");
+                } else {
+                    progressFillEl.classList.remove("warning-fill", "danger-fill");
+                }
+            }
+            if (remainingPercentLabel) {
+                remainingPercentLabel.innerText = `${Math.floor(percentRemaining)}% remaining`;
+            }
+        }
+
+        // update warning message based on remaining days
+        function updateWarningMessage(daysRemaining) {
+            if (daysRemaining <= 0) {
+                warningMessageSpan.innerHTML = "⚠️ Subscription expired — renew immediately";
+                warningMessageSpan.style.color = "#b91c1c";
+                warningMessageSpan.style.fontWeight = "500";
+                liveStatusChip.innerHTML = "🔴 Expired";
+                liveStatusChip.style.background = "#fee2e2";
+                liveStatusChip.style.color = "#991b1b";
+                liveStatusChip.style.borderColor = "#fecaca";
+                return;
+            }
+            // reset style for active
+            warningMessageSpan.style.color = "";
+            warningMessageSpan.style.fontWeight = "";
+            liveStatusChip.innerHTML = "✅ Active";
+            liveStatusChip.style.background = "#eef2ff";
+            liveStatusChip.style.color = "#1e40af";
+            
+            if (daysRemaining <= 3) {
+                warningMessageSpan.innerHTML = "🔥 URGENT: Expires in less than 3 days — renew now!";
+                warningMessageSpan.style.color = "#b91c1c";
+                warningMessageSpan.style.fontWeight = "500";
+            } else if (daysRemaining <= 7) {
+                warningMessageSpan.innerHTML = "⏰ Warning: Subscription ends within a week. Renew to avoid interruption.";
+                warningMessageSpan.style.color = "#c2410c";
+                warningMessageSpan.style.fontWeight = "500";
+            } else if (daysRemaining <= 30) {
+                warningMessageSpan.innerHTML = "📆 Expiring soon — consider renewal for uninterrupted service.";
+                warningMessageSpan.style.color = "#e68a2e";
+                warningMessageSpan.style.fontWeight = "450";
+            } else {
+                warningMessageSpan.innerHTML = "✔️ All features active — you're all set!";
+                warningMessageSpan.style.color = "#2b6e3c";
+            }
+        }
+
+        // core countdown + full UI update
+        function updateCountdownAndUI() {
+            const now = new Date(); // current local time
+            const diffMs = expiryDate - now;
+            const isExpired = diffMs <= 0;
+
+            // handle expired state
+            if (isExpired) {
+                countdownEl.innerHTML = "EXPIRED";
+                countdownEl.className = "expired";
+                // progress bar zero
+                if (progressFillEl) progressFillEl.style.width = "0%";
+                if (remainingPercentLabel) remainingPercentLabel.innerText = "0% remaining";
+                updateWarningMessage(0);
+                // additional class for chip
+                liveStatusChip.innerHTML = "🔴 Expired";
+                liveStatusChip.style.background = "#fee2e2";
+                liveStatusChip.style.color = "#991b1b";
+                return;
+            }
+
+            // compute days, hours, minutes, seconds
+            const totalSeconds = Math.floor(diffMs / 1000);
+            const days = Math.floor(totalSeconds / 86400);
+            const hours = Math.floor((totalSeconds % 86400) / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            // format display with leading zero for seconds/minutes optional but nice
+            const formattedTime = `${days}d ${hours}h ${minutes}m ${seconds}s`;
+            countdownEl.innerHTML = formattedTime;
+
+            // apply color classes based on days left
+            if (days <= 3) {
+                countdownEl.className = "danger";
+            } else if (days <= 7) {
+                countdownEl.className = "warning";
+            } else {
+                countdownEl.className = "";
+            }
+
+            // update progress bar (total lifespan known)
+            if (isValidSpan) {
+                const remainingMs = expiryDate - now;
+                const percentRemaining = (remainingMs / totalLifespanMs) * 100;
+                let safePercent = Math.min(100, Math.max(0, percentRemaining));
+                if (progressFillEl) {
+                    progressFillEl.style.width = `${safePercent}%`;
+                    // update fill class based on days left (danger/warning)
+                    if (days <= 3) {
+                        progressFillEl.classList.add("danger-fill");
+                        progressFillEl.classList.remove("warning-fill");
+                    } else if (days <= 7) {
+                        progressFillEl.classList.add("warning-fill");
+                        progressFillEl.classList.remove("danger-fill");
+                    } else {
+                        progressFillEl.classList.remove("warning-fill", "danger-fill");
+                    }
+                }
+                if (remainingPercentLabel) {
+                    remainingPercentLabel.innerText = `${Math.floor(safePercent)}% remaining`;
+                }
+            } else {
+                // fallback: just compute days remaining vs total theoretical (if start invalid)
+                const totalDaysLimit = 1825; // ~5 years from 2023-2028 (example)
+                let percent = (days / totalDaysLimit) * 100;
+                percent = Math.min(100, Math.max(0, percent));
+                if (progressFillEl) progressFillEl.style.width = `${percent}%`;
+                if (remainingPercentLabel) remainingPercentLabel.innerText = `${Math.floor(percent)}% left`;
+            }
+
+            // update warning message and status chip based on days
+            updateWarningMessage(days);
+        }
+
+        // advanced: also update the progress bar from subscription start perspective (already integrated in updateCountdownAndUI)
+        // but to also recalc progress bar with accurate total days from start to expiry, we integrate within same call.
+        // For better visual, we combine logic: ensure progress bar is always consistent.
+        function advancedRefresh() {
+            const now = new Date();
+            const diffMs = expiryDate - now;
+            if (diffMs <= 0) {
+                // expired: force progress bar to 0
+                if (progressFillEl) progressFillEl.style.width = "0%";
+                if (remainingPercentLabel) remainingPercentLabel.innerText = "0% remaining";
+                updateCountdownAndUI(); // ensure everything else sync
+                return;
+            }
+            updateCountdownAndUI();
+        }
+
+        // 1-second interval for countdown
+        let intervalId = setInterval(() => {
+            advancedRefresh();
+        }, 1000);
+
+        // initial run
+        advancedRefresh();
+
+        // optional: check if date is far in future & no edge cases: also adjust progress bar on load using subscription start if valid.
+        // Also ensure expiry display does not flicker.
+        // Add small margin for DST / timezone: using local date constructor works fine.
+        // Additional fine-tuning for subscription start validation (if totalLifespanMs is positive but current time before start? improbable)
+        // In case current time is before subscription start (unlikely since start=2023), but handle gracefully.
+        function finalTune() {
+            const now = new Date();
+            if (now < subscriptionStart && isValidSpan) {
+                // not yet started? then remaining = total lifespan, progress 100%
+                if (progressFillEl) progressFillEl.style.width = "100%";
+                if (remainingPercentLabel) remainingPercentLabel.innerText = "100% remaining";
+                const daysRemaining = Math.max(0, Math.floor((expiryDate - now) / (1000*3600*24)));
+                updateWarningMessage(daysRemaining);
+            } else {
+                advancedRefresh();
+            }
+        }
+        finalTune();
+
+        // also clean up interval on page unload (optional, not critical)
+        window.addEventListener("beforeunload", function() {
+            if (intervalId) clearInterval(intervalId);
+        });
+        
+        // If page visibility changes, keep accurate time (no need extra, setInterval is fine)
+        // bonus: add a small re-sync after focus to avoid drift
+        document.addEventListener("visibilitychange", function() {
+            if (!document.hidden) {
+                advancedRefresh();
+            }
+        });
+        
+        // Additional polish: set initial chip to active style
+        if (!(expiryDate <= new Date())) {
+            liveStatusChip.innerHTML = "✅ Active";
+            liveStatusChip.style.background = "#eef2ff";
+            liveStatusChip.style.color = "#1e40af";
+        }
+        
+        // set progress bar initial color classes (default blue)
+        // Small fix: ensure that progress fill does not inherit wrong class on first load
+        const initialDays = Math.max(0, Math.floor((expiryDate - new Date()) / (1000*3600*24)));
+        if (initialDays <= 3 && initialDays > 0) {
+            progressFillEl?.classList.add("danger-fill");
+        } else if (initialDays <= 7 && initialDays > 0) {
+            progressFillEl?.classList.add("warning-fill");
+        }
+    })();
+</script>
+</body>
+</html>
